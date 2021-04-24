@@ -1581,13 +1581,13 @@ class JIRA(object):
             params["expand"] = expand
         return self._get_json("issue/createmeta", params)
 
-    def _get_user_accountid(self, user):
-        """Internal method for translating an user to an accountId."""
+    def _get_user_key(self, user):
+        """Internal method for translating an user (str) to an key."""
         try:
-            accountId = self.search_users(user, maxResults=1)[0].accountId
+            key = self.search_users(user, maxResults=1)[0].key
         except Exception as e:
             raise JIRAError(e)
-        return accountId
+        return key
 
     # non-resource
     @translate_resource_args
@@ -1607,7 +1607,7 @@ class JIRA(object):
             + str(issue)
             + "/assignee"
         )
-        payload = {"accountId": self._get_user_accountid(assignee)}
+        payload = {"name": self._get_user_key(assignee)}
         # 'key' and 'name' are deprecated in favor of accountId
         r = self._session.put(url, data=json.dumps(payload))
         raise_on_error(r)
@@ -1940,7 +1940,7 @@ class JIRA(object):
         """Add a user to an issue's watchers list.
 
         :param issue: ID or key of the issue affected
-        :param watcher: username of the user to add to the watchers list
+        :param watcher: key of the user to add to the watchers list
         """
         url = self._get_url("issue/" + str(issue) + "/watchers")
         self._session.post(url, data=json.dumps(watcher))
@@ -1950,11 +1950,12 @@ class JIRA(object):
         """Remove a user from an issue's watch list.
 
         :param issue: ID or key of the issue affected
-        :param watcher: accountId of the user to remove from the watchers list
+        :param watcher: key of the user to remove from the watchers list
         :rtype: Response
         """
         url = self._get_url("issue/" + str(issue) + "/watchers")
-        params = {"accountId": watcher}
+        # https://docs.atlassian.com/software/jira/docs/api/REST/8.13.6/#api/2/issue-removeWatcher
+        params = {"username": watcher}
         result = self._session.delete(url, params=params)
         return result
 
@@ -3653,7 +3654,7 @@ class JIRA(object):
         :type: str
         :param name: If not specified it will use the key value.
         :type name: Optional[str]
-        :param assignee: accountId of the lead, if not specified it will use current user.
+        :param assignee: key of the lead, if not specified it will use current user.
         :type assignee: Optional[str]
         :param type: Determines the type of project should be created.
         :type ptype: Optional[str]
