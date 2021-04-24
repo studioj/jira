@@ -464,7 +464,7 @@ class JIRA(object):
         if self._options["server"].endswith("/"):
             self._options["server"] = self._options["server"][:-1]
 
-        context_path = urlparse(self._options["server"]).path
+        context_path = urlparse(self.server).path
         if len(context_path) > 0:
             self._options["context_path"] = context_path
 
@@ -530,6 +530,29 @@ class JIRA(object):
             if "clauseNames" in f:
                 for name in f["clauseNames"]:
                     self._fields[name] = f["id"]
+
+    @property
+    def server(self):
+        """Return the server url"""
+        return self._options["server"]
+
+    @property
+    def versioned_rest(self):
+        """Return a versioned rest api url"""
+        return "{server}/{api_path}/{api_version}".format(
+            server=self.server,
+            api_path="rest/"+self._options["rest_path"],
+            api_version=self._options["rest_api_version"]
+        )
+
+    @property
+    def latest_rest(self):
+        """Return the latest rest api url"""
+        return "{server}/{api_path}/{api_version}".format(
+            server=self.server,
+            api_path="rest/"+self._options["rest_path"],
+            api_version="latest"
+        )
 
     def _create_cookie_auth(self, auth, timeout):
         self._session = ResilientSession(timeout=timeout)
@@ -733,7 +756,7 @@ class JIRA(object):
 
     def client_info(self):
         """Get the server this client is connected to."""
-        return self._options["server"]
+        return self.server
 
     # Universal resource loading
 
@@ -798,7 +821,7 @@ class JIRA(object):
         :param value: value to assign to the property
         :type value: str
         """
-        url = self._options["server"] + "/rest/api/latest/application-properties/" + key
+        url = self.latest_rest + "/application-properties/" + key
         payload = {"id": key, "value": value}
         return self._session.put(url, data=json.dumps(payload))
 
@@ -812,7 +835,7 @@ class JIRA(object):
             return self._applicationlinks
 
         # url = self._options['server'] + '/rest/applinks/latest/applicationlink'
-        url = self._options["server"] + "/rest/applinks/latest/listApplicationlinks"
+        url = self.server + "/rest/applinks/latest/listApplicationlinks"
 
         r = self._session.get(url)
 
@@ -1222,7 +1245,7 @@ class JIRA(object):
         :return: Boolean - True if successful.
         :rtype: bool
         """
-        url = self._options["server"] + "/rest/api/latest/group"
+        url = self.latest_rest + "/group"
 
         # implementation based on
         # https://docs.atlassian.com/jira/REST/ondemand/#d2e5173
@@ -1247,7 +1270,7 @@ class JIRA(object):
         """
         # implementation based on
         # https://docs.atlassian.com/jira/REST/ondemand/#d2e5173
-        url = self._options["server"] + "/rest/api/latest/group"
+        url = self.latest_rest + "/group"
         x = {"groupname": groupname}
         self._session.delete(url, params=x)
         return True
@@ -1402,7 +1425,7 @@ class JIRA(object):
 
         :rtype: bool
         """
-        url = self._options["server"] + "/rest/servicedeskapi/info"
+        url = self.server + "/rest/servicedeskapi/info"
         headers = {"X-ExperimentalApi": "opt-in"}
         try:
             r = self._session.get(url, headers=headers)
@@ -1420,7 +1443,7 @@ class JIRA(object):
         :rtype: Customer
 
         """
-        url = self._options["server"] + "/rest/servicedeskapi/customer"
+        url = self.server + "/rest/servicedeskapi/customer"
         headers = {"X-ExperimentalApi": "opt-in"}
         r = self._session.post(
             url,
@@ -1440,7 +1463,7 @@ class JIRA(object):
         :rtype: List[ServiceDesk]
 
         """
-        url = self._options["server"] + "/rest/servicedeskapi/servicedesk"
+        url = self.server + "/rest/servicedeskapi/servicedesk"
         headers = {"X-ExperimentalApi": "opt-in"}
         r_json = json_loads(self._session.get(url, headers=headers))
         print(r_json)
@@ -1500,7 +1523,7 @@ class JIRA(object):
         elif isinstance(p, str):
             data["requestTypeId"] = self.request_type_by_name(service_desk, p).id
 
-        url = self._options["server"] + "/rest/servicedeskapi/request"
+        url = self.server + "/rest/servicedeskapi/request"
         headers = {"X-ExperimentalApi": "opt-in"}
         r = self._session.post(url, headers=headers, data=json.dumps(data))
 
@@ -1579,8 +1602,8 @@ class JIRA(object):
         :rtype: bool
         """
         url = (
-            self._options["server"]
-            + "/rest/api/latest/issue/"
+            self.latest_rest
+            + "/issue/"
             + str(issue)
             + "/assignee"
         )
@@ -1752,7 +1775,7 @@ class JIRA(object):
 
         # check if the link comes from one of the configured application links
         for x in applicationlinks:
-            if x["application"]["displayUrl"] == self._options["server"]:
+            if x["application"]["displayUrl"] == self.server:
                 data["globalId"] = "appId=%s&issueId=%s" % (
                     x["application"]["id"],
                     destination.raw["id"],
@@ -2152,7 +2175,7 @@ class JIRA(object):
         if hasattr(service_desk, "id"):
             service_desk = service_desk.id
         url = (
-            self._options["server"]
+            self.server
             + "/rest/servicedeskapi/servicedesk/%s/requesttype" % service_desk
         )
         headers = {"X-ExperimentalApi": "opt-in"}
@@ -2989,7 +3012,7 @@ class JIRA(object):
 
     def kill_session(self):
         """Destroy the session of the current authenticated user."""
-        url = self._options["server"] + "/rest/auth/latest/session"
+        url = self.server + "/rest/auth/latest/session"
         return self._session.delete(url)
 
     # Websudo
@@ -3001,7 +3024,7 @@ class JIRA(object):
         :rtype: Optional[Any]
         """
         if self.deploymentType != "Cloud":
-            url = self._options["server"] + "/rest/auth/1/websudo"
+            url = self.server + "/rest/auth/1/websudo"
             return self._session.delete(url)
 
     # Utilities
@@ -3194,7 +3217,7 @@ class JIRA(object):
 
         """
         if self._version > (6, 0, 0):
-            url = self._options["server"] + "/rest/api/latest/user"
+            url = self.latest_rest + "/user"
             payload = {"name": new_user}
             params = {"username": old_user}
 
@@ -3219,7 +3242,7 @@ class JIRA(object):
 
         """
 
-        url = self._options["server"] + "/rest/api/latest/user/?username=%s" % username
+        url = self.latest_rest + "/user/?username=%s" % username
 
         r = self._session.delete(url)
         if 200 <= r.status_code <= 299:
@@ -3272,7 +3295,7 @@ class JIRA(object):
                 logging.error("Error Deactivating %s: %s" % (username, e))
                 raise JIRAError("Error Deactivating %s: %s" % (username, e))
         else:
-            url = self._options["server"] + "/secure/admin/user/EditUser.jspa"
+            url = self.server + "/secure/admin/user/EditUser.jspa"
             self._options["headers"][
                 "Content-Type"
             ] = "application/x-www-form-urlencoded; charset=UTF-8"
@@ -3316,7 +3339,7 @@ class JIRA(object):
         else:
             indexingStrategy = "stoptheworld"
 
-        url = self._options["server"] + "/secure/admin/jira/IndexReIndex.jspa"
+        url = self.server + "/secure/admin/jira/IndexReIndex.jspa"
 
         r = self._session.get(url, headers=self._options["headers"])
         if r.status_code == 503:
@@ -3348,11 +3371,11 @@ class JIRA(object):
     def backup(self, filename="backup.zip", attachments=False):
         """Will call jira export to backup as zipped xml. Returning with success does not mean that the backup process finished."""
         if self.deploymentType == "Cloud":
-            url = self._options["server"] + "/rest/backup/1/export/runbackup"
+            url = self.server + "/rest/backup/1/export/runbackup"
             payload = json.dumps({"cbAttachments": attachments})
             self._options["headers"]["X-Requested-With"] = "XMLHttpRequest"
         else:
-            url = self._options["server"] + "/secure/admin/XmlBackup.jspa"
+            url = self.server + "/secure/admin/XmlBackup.jspa"
             payload = {"filename": filename}
         try:
             r = self._session.post(url, headers=self._options["headers"], data=payload)
@@ -3372,7 +3395,7 @@ class JIRA(object):
         epoch_time = int(time.time() * 1000)
         if self.deploymentType == "Cloud":
             url = (
-                self._options["server"] + "/rest/obm/1.0/getprogress?_=%i" % epoch_time
+                self.server + "/rest/obm/1.0/getprogress?_=%i" % epoch_time
             )
         else:
             logging.warning("This functionality is not available in Server version")
@@ -3416,7 +3439,7 @@ class JIRA(object):
             return None
         remote_file = self.backup_progress()["fileName"]
         local_file = filename or remote_file
-        url = self._options["server"] + "/webdav/backupmanager/" + remote_file
+        url = self.server + "/webdav/backupmanager/" + remote_file
         try:
             logging.debug("Writing file to %s" % local_file)
             with open(local_file, "wb") as file:
@@ -3467,7 +3490,7 @@ class JIRA(object):
         if hasattr(pid, "id"):
             pid = pid.id
 
-        url = self._options["server"] + "/rest/api/2/project/%s" % pid
+        url = self.versioned_rest + "/project/%s" % pid
         r = self._session.delete(url)
         if r.status_code == 403:
             raise JIRAError("Not enough permissions to delete project")
@@ -3476,7 +3499,7 @@ class JIRA(object):
         return r.ok
 
     def _gain_sudo_session(self, options, destination):
-        url = self._options["server"] + "/secure/admin/WebSudoAuthenticate.jspa"
+        url = self.server + "/secure/admin/WebSudoAuthenticate.jspa"
 
         if not self._session.auth:
             self._session.auth = get_netrc_auth(url)
@@ -3500,7 +3523,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def templates(self):
 
-        url = self._options["server"] + "/rest/project-templates/latest/templates"
+        url = self.server + "/rest/project-templates/latest/templates"
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3516,7 +3539,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def permissionschemes(self):
 
-        url = self._options["server"] + "/rest/api/3/permissionscheme"
+        url = self.versioned_rest + "/permissionscheme"
 
         r = self._session.get(url)
         data = json_loads(r)["permissionSchemes"]
@@ -3526,7 +3549,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def issuesecurityschemes(self):
 
-        url = self._options["server"] + "/rest/api/3/issuesecurityschemes"
+        url = self.versioned_rest + "/issuesecurityschemes"
 
         r = self._session.get(url)
         data = json_loads(r)["issueSecuritySchemes"]
@@ -3536,7 +3559,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def projectcategories(self):
 
-        url = self._options["server"] + "/rest/api/3/projectCategory"
+        url = self.versioned_rest + "/projectCategory"
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3546,7 +3569,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def avatars(self, entity="project"):
 
-        url = self._options["server"] + "/rest/api/3/avatar/%s/system" % entity
+        url = self.versioned_rest + "/avatar/%s/system" % entity
 
         r = self._session.get(url)
         data = json_loads(r)["system"]
@@ -3556,7 +3579,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def notificationschemes(self):
         # TODO(ssbarnea): implement pagination support
-        url = self._options["server"] + "/rest/api/3/notificationscheme"
+        url = self.versioned_rest + "/notificationscheme"
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3565,7 +3588,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def screens(self):
         # TODO(ssbarnea): implement pagination support
-        url = self._options["server"] + "/rest/api/3/screens"
+        url = self.versioned_rest + "/screens"
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3574,7 +3597,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def workflowscheme(self):
         # TODO(ssbarnea): implement pagination support
-        url = self._options["server"] + "/rest/api/3/workflowschemes"
+        url = self.versioned_rest + "/workflowschemes"
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3583,7 +3606,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def workflows(self):
         # TODO(ssbarnea): implement pagination support
-        url = self._options["server"] + "/rest/api/3/workflow"
+        url = self.versioned_rest + "/workflow"
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3591,7 +3614,7 @@ class JIRA(object):
 
     def delete_screen(self, id):
 
-        url = self._options["server"] + "/rest/api/3/screens/%s" % id
+        url = self.versioned_rest + "/screens/%s" % id
 
         r = self._session.delete(url)
         data = json_loads(r)
@@ -3601,7 +3624,7 @@ class JIRA(object):
 
     def delete_permissionscheme(self, id):
 
-        url = self._options["server"] + "/rest/api/3/permissionscheme/%s" % id
+        url = self.versioned_rest + "/permissionscheme/%s" % id
 
         r = self._session.delete(url)
         data = json_loads(r)
@@ -3755,7 +3778,7 @@ class JIRA(object):
         if projectCategory:
             payload["categoryId"] = int(projectCategory)
 
-        url = self._options["server"] + "/rest/api/3/project"
+        url = self.versioned_rest + "/project"
 
         r = self._session.post(url, data=json.dumps(payload))
         r.raise_for_status()
@@ -3805,7 +3828,7 @@ class JIRA(object):
             fullname = username
         # TODO(ssbarnea): default the directoryID to the first directory in jira instead
         # of 1 which is the internal one.
-        url = self._options["server"] + "/rest/api/latest/user"
+        url = self.latest_rest + "/user"
 
         # implementation based on
         # https://docs.atlassian.com/jira/REST/ondemand/#d2e5173
@@ -3846,7 +3869,7 @@ class JIRA(object):
         :return: json response from Jira server for success or a value that evaluates as False in case of failure.
         :rtype: Union[bool,Dict[str,Any]]
         """
-        url = self._options["server"] + "/rest/api/latest/group/user"
+        url = self.latest_rest + "/group/user"
         x = {"groupname": group}
         y = {"name": username}
 
@@ -3864,7 +3887,7 @@ class JIRA(object):
         :param username: The user to remove from the group.
         :param groupname: The group that the user will be removed from.
         """
-        url = self._options["server"] + "/rest/api/latest/group/user"
+        url = self.latest_rest + "/group/user"
         x = {"groupname": groupname, "username": username}
 
         self._session.delete(url, params=x)
@@ -3880,7 +3903,7 @@ class JIRA(object):
         """
         # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-rest-api-3-role-get
 
-        url = self._options["server"] + "/rest/api/latest/role"
+        url = self.latest_rest + "/role"
 
         r = self._session.get(url)
         return json_loads(r)
@@ -3889,7 +3912,7 @@ class JIRA(object):
     # Experimental support for iDalko Grid, expect API to change as it's using private APIs currently
     # https://support.idalko.com/browse/IGRID-1017
     def get_igrid(self, issueid, customfield, schemeid):
-        url = self._options["server"] + "/rest/idalko-igrid/1.0/datagrid/data"
+        url = self.server + "/rest/idalko-igrid/1.0/datagrid/data"
         if str(customfield).isdigit():
             customfield = "customfield_%s" % customfield
         params = {
