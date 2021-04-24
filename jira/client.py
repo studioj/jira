@@ -3668,7 +3668,7 @@ class JIRA(object):
         template_key = None
 
         if assignee is None:
-            assignee = self.current_user("accountId")
+            assignee = self.current_user()
         if name is None:
             name = key
 
@@ -3704,8 +3704,12 @@ class JIRA(object):
         # https://jira.atlassian.com/browse/JRASERVER-59658
         # preference list for picking a default template
         if not template_name:
-            template_key = "com.pyxis.greenhopper.jira:gh-simplified-basic"
+            # https://confluence.atlassian.com/jirakb/creating-projects-via-rest-api-in-jira-963651978.html
+            template_key = (
+                "com.pyxis.greenhopper.jira:basic-software-development-template"
+            )
 
+        # https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-projects/#api-rest-api-2-project-get
         # template_keys = [
         #     "com.pyxis.greenhopper.jira:gh-simplified-agility-kanban",
         #     "com.pyxis.greenhopper.jira:gh-simplified-agility-scrum",
@@ -3765,7 +3769,8 @@ class JIRA(object):
             "key": key,
             "projectTypeKey": ptype,
             "projectTemplateKey": template_key,
-            "leadAccountId": assignee,
+            "lead": assignee,
+            # "leadAccountId": assignee,
             "assigneeType": "PROJECT_LEAD",
             "description": "",
             # "avatarId": 13946,
