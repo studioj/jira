@@ -536,15 +536,6 @@ class JIRA(object):
         """Return the server url"""
         return self._options["server"]
 
-    @property
-    def versioned_rest(self):
-        """Return a versioned rest api url"""
-        return "{server}/{api_path}/{api_version}".format(
-            server=self.server,
-            api_path="rest/"+self._options["rest_path"],
-            api_version=self._options["rest_api_version"]
-        )
-
     def _create_cookie_auth(self, auth, timeout):
         self._session = ResilientSession(timeout=timeout)
         self._session.auth = JiraCookieAuth(self._session, self.session, auth)
@@ -3495,7 +3486,7 @@ class JIRA(object):
         if hasattr(pid, "id"):
             pid = pid.id
 
-        url = self.versioned_rest + "/project/%s" % pid
+        url = self._get_url("project/%s" % pid)
         r = self._session.delete(url)
         if r.status_code == 403:
             raise JIRAError("Not enough permissions to delete project")
@@ -3544,7 +3535,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def permissionschemes(self):
 
-        url = self.versioned_rest + "/permissionscheme"
+        url = self._get_url("permissionscheme")
 
         r = self._session.get(url)
         data = json_loads(r)["permissionSchemes"]
@@ -3554,7 +3545,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def issuesecurityschemes(self):
 
-        url = self.versioned_rest + "/issuesecurityschemes"
+        url = self._get_url("issuesecurityschemes")
 
         r = self._session.get(url)
         data = json_loads(r)["issueSecuritySchemes"]
@@ -3564,7 +3555,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def projectcategories(self):
 
-        url = self.versioned_rest + "/projectCategory"
+        url = self._get_url("projectCategory")
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3574,7 +3565,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def avatars(self, entity="project"):
 
-        url = self.versioned_rest + "/avatar/%s/system" % entity
+        url = self._get_url("avatar/%s/system" % entity)
 
         r = self._session.get(url)
         data = json_loads(r)["system"]
@@ -3584,7 +3575,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def notificationschemes(self):
         # TODO(ssbarnea): implement pagination support
-        url = self.versioned_rest + "/notificationscheme"
+        url = self._get_url("notificationscheme")
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3593,7 +3584,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def screens(self):
         # TODO(ssbarnea): implement pagination support
-        url = self.versioned_rest + "/screens"
+        url = self._get_url("screens")
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3602,7 +3593,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def workflowscheme(self):
         # TODO(ssbarnea): implement pagination support
-        url = self.versioned_rest + "/workflowschemes"
+        url = self._get_url("workflowschemes")
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3611,7 +3602,7 @@ class JIRA(object):
     @lru_cache(maxsize=None)
     def workflows(self):
         # TODO(ssbarnea): implement pagination support
-        url = self.versioned_rest + "/workflow"
+        url = self._get_url("workflow")
 
         r = self._session.get(url)
         data = json_loads(r)
@@ -3619,7 +3610,7 @@ class JIRA(object):
 
     def delete_screen(self, id):
 
-        url = self.versioned_rest + "/screens/%s" % id
+        url = self._get_url("screens/%s" % id)
 
         r = self._session.delete(url)
         data = json_loads(r)
@@ -3629,7 +3620,7 @@ class JIRA(object):
 
     def delete_permissionscheme(self, id):
 
-        url = self.versioned_rest + "/permissionscheme/%s" % id
+        url = self._get_url("permissionscheme/%s" % id)
 
         r = self._session.delete(url)
         data = json_loads(r)
@@ -3788,7 +3779,7 @@ class JIRA(object):
         if projectCategory:
             payload["categoryId"] = int(projectCategory)
 
-        url = self.versioned_rest + "/project"
+        url = self._get_url("project")
 
         r = self._session.post(url, data=json.dumps(payload))
         r.raise_for_status()
