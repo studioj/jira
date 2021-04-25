@@ -1,10 +1,6 @@
 name: Jira CI Python Test runner
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on:  [push, pull_request]
 
 jobs:
   build:
