@@ -545,15 +545,6 @@ class JIRA(object):
             api_version=self._options["rest_api_version"]
         )
 
-    @property
-    def latest_rest(self):
-        """Return the latest rest api url"""
-        return "{server}/{api_path}/{api_version}".format(
-            server=self.server,
-            api_path="rest/"+self._options["rest_path"],
-            api_version="latest"
-        )
-
     def _create_cookie_auth(self, auth, timeout):
         self._session = ResilientSession(timeout=timeout)
         self._session.auth = JiraCookieAuth(self._session, self.session, auth)
@@ -821,7 +812,7 @@ class JIRA(object):
         :param value: value to assign to the property
         :type value: str
         """
-        url = self.latest_rest + "/application-properties/" + key
+        url = self._get_latest_url("application-properties/" + key)
         payload = {"id": key, "value": value}
         return self._session.put(url, data=json.dumps(payload))
 
@@ -1245,7 +1236,7 @@ class JIRA(object):
         :return: Boolean - True if successful.
         :rtype: bool
         """
-        url = self.latest_rest + "/group"
+        url = self._get_latest_url("group")
 
         # implementation based on
         # https://docs.atlassian.com/jira/REST/ondemand/#d2e5173
@@ -1270,7 +1261,7 @@ class JIRA(object):
         """
         # implementation based on
         # https://docs.atlassian.com/jira/REST/ondemand/#d2e5173
-        url = self.latest_rest + "/group"
+        url = self._get_latest_url("group")
         x = {"groupname": groupname}
         self._session.delete(url, params=x)
         return True
@@ -1601,12 +1592,7 @@ class JIRA(object):
 
         :rtype: bool
         """
-        url = (
-            self.latest_rest
-            + "/issue/"
-            + str(issue)
-            + "/assignee"
-        )
+        url = self._get_latest_url("issue/{}/assignee".format(str(issue)))
         payload = {"name": self._get_user_key(assignee)}
         # 'key' and 'name' are deprecated in favor of accountId
         r = self._session.put(url, data=json.dumps(payload))
@@ -1621,7 +1607,7 @@ class JIRA(object):
         :type issue: str
         :rtype: List[Comment]
         """
-        r_json = self._get_json("issue/" + str(issue) + "/comment")
+        r_json = self._get_json("issue/{}/comment".format(str(issue)))
 
         comments = [
             Comment(self._options, self._session, raw_comment_json)
@@ -3120,7 +3106,8 @@ class JIRA(object):
         return self._session.put(url, params=params, data=json.dumps(data))
 
     def _get_url(self, path, base=JIRA_BASE_URL):
-        """ Returns the full url based on Jira base url and the path provided
+        """ Returns the full url based on Jira base url and the path provided.
+        Using the API version specified during the __init__.
 
         :param path: The subpath desired.
         :type path: str
@@ -3133,6 +3120,23 @@ class JIRA(object):
         """
         options = self._options.copy()
         options.update({"path": path})
+        return base.format(**options)
+
+    def _get_latest_url(self, path, base=JIRA_BASE_URL):
+        """ Returns the full url based on Jira base url and the path provided.
+        Using the latest API endpoint.
+
+        :param path: The subpath desired.
+        :type path: str
+        :param base: The base url which should be prepended to the path
+        :type base: Optional[str]
+
+        :return Fully qualified URL
+        :rtype: str
+
+        """
+        options = self._options.copy()
+        options.update({"path": path, "rest_api_version": "latest"})
         return base.format(**options)
 
     def _get_json(self, path, params=None, base=JIRA_BASE_URL):
@@ -3218,7 +3222,7 @@ class JIRA(object):
 
         """
         if self._version > (6, 0, 0):
-            url = self.latest_rest + "/user"
+            url = self._get_latest_url("user")
             payload = {"name": new_user}
             params = {"username": old_user}
 
@@ -3243,7 +3247,7 @@ class JIRA(object):
 
         """
 
-        url = self.latest_rest + "/user/?username=%s" % username
+        url = self._get_latest_url("user/?username=%s" % username)
 
         r = self._session.delete(url)
         if 200 <= r.status_code <= 299:
@@ -3834,7 +3838,7 @@ class JIRA(object):
             fullname = username
         # TODO(ssbarnea): default the directoryID to the first directory in jira instead
         # of 1 which is the internal one.
-        url = self.latest_rest + "/user"
+        url = self._get_latest_url("user")
 
         # implementation based on
         # https://docs.atlassian.com/jira/REST/ondemand/#d2e5173
@@ -3875,7 +3879,7 @@ class JIRA(object):
         :return: json response from Jira server for success or a value that evaluates as False in case of failure.
         :rtype: Union[bool,Dict[str,Any]]
         """
-        url = self.latest_rest + "/group/user"
+        url = self._get_latest_url("group/user")
         x = {"groupname": group}
         y = {"name": username}
 
@@ -3893,7 +3897,7 @@ class JIRA(object):
         :param username: The user to remove from the group.
         :param groupname: The group that the user will be removed from.
         """
-        url = self.latest_rest + "/group/user"
+        url = self._get_latest_url("group/user")
         x = {"groupname": groupname, "username": username}
 
         self._session.delete(url, params=x)
@@ -3909,7 +3913,7 @@ class JIRA(object):
         """
         # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-rest-api-3-role-get
 
-        url = self.latest_rest + "/role"
+        url = self._get_latest_url("role")
 
         r = self._session.get(url)
         return json_loads(r)
