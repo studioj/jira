@@ -11,11 +11,11 @@ on:
       - main
 
 jobs:
-  # Server:
-  #   uses: adehad/jira/.github/workflows/jira_server_ci.yml@main
+  Server:
+    uses: adehad/jira/.github/workflows/jira_server_ci.yml@main
 
   Cloud:
-    # needs: Server
+    needs: Server
     uses: adehad/jira/.github/workflows/jira_cloud_ci.yml@main
     secrets:
       CLOUD_ADMIN: ${{ secrets.CI_JIRA_CLOUD_ADMIN }}
