@@ -69,3 +69,7 @@ jobs:
 
       - name: Make docs
         run: tox -e docs
+
+  cloud_test:
+    needs: test
+    uses: .github/workflows/jira_cloud_ci.yml@main
