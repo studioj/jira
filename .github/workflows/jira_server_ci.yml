@@ -72,4 +72,4 @@ jobs:
 
   cloud_test:
     needs: test
-    uses: .github/workflows/jira_cloud_ci.yml@main
+    uses:  adehad/jira/.github/workflows/jira_cloud_ci.yml@main
