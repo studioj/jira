@@ -5,6 +5,12 @@ on:
     workflows: ["Jira Server CI"]
     types:
       - completed
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
